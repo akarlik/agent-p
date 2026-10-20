@@ -1,0 +1,49 @@
+{
+  "name": "agent-p",
+  "version": "0.1.0",
+  "description": "Agent P — design, validate, and export AI agent teams and SDLC pipelines.",
+  "type": "module",
+  "bin": {
+    "agentp": "./src/cli/index.ts"
+  },
+  "files": [
+    "src",
+    "schemas",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "bun run src/cli/index.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "schema": "bun run src/cli/index.ts schema --out schemas/agentp.schema.json",
+    "check": "bun run typecheck && bun test",
+    "build": "bun build src/cli/index.ts --compile --outfile dist/agentp"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "tui",
+    "opencode",
+    "claude-code",
+    "codex",
+    "sdlc",
+    "workflow"
+  ],
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.3.14"
+  },
+  "dependencies": {
+    "commander": "^15.0.0",
+    "diff": "^9.0.0",
+    "jsonc-parser": "^3.3.1",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.3",
+    "@types/diff": "^8.0.0",
+    "typescript": "^7.0.2"
+  }
+}
