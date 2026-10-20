@@ -1,5 +1,7 @@
 import { error, type Diagnostic } from "../diagnostics"
 import { buildGraph, describeCondition, reachableFromEntry } from "../graph/graph"
+import { managedBlock, upsertManagedBlock } from "../fs/managed"
+import { readTextIfExists } from "../fs/paths"
 import type { ResolvedContext, ResolvedPack } from "../resolve/resolve"
 import type { PipelineDoc } from "../spec/schema"
 
@@ -125,8 +127,29 @@ export function renderAgentsMarkdown(
   return lines.join("\n").trim()
 }
 
-export type OrchestratorBodyOptions = {
-  /** Overrides the paragraph that explains how work is delegated. */
+export type ContextFileOptions = {
+  root: string
+  /** Repo-relative path the runtime reads: AGENTS.md, CLAUDE.md, ... */
+  path: string
+  pack: ResolvedPack
+  pipeline?: PipelineDoc
+  context?: ResolvedContext
+}
+
+/**
+ * Renders the project context file, preserving anything the user wrote outside the
+ * managed block. Shared by every target that reads a repo-level instruction file.
+ */
+export async function renderContextFile(options: ContextFileOptions): Promise<string> {
+  const body = renderAgentsMarkdown(options.pack, options.pipeline, options.context)
+  const existing = await readTextIfExists(`${options.root}/${options.path}`)
+  if (existing === null || existing.trim().length === 0) {
+    return `# ${options.pack.pack.metadata.name}\n\n${managedBlock("context", body)}\n`
+  }
+  return upsertManagedBlock(existing, "context", body)
+}
+
+export type OrchestratorBodyOptions = {  /** Overrides the paragraph that explains how work is delegated. */
   delegation?: string
   /** Extra paragraph inserted after the opening, e.g. the request placeholder. */
   invocation?: string

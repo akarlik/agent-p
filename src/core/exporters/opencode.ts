@@ -1,7 +1,6 @@
 import { applyEdits, modify, parse as parseJsonc, type ParseError } from "jsonc-parser"
 import YAML from "yaml"
 import { error, warning, type Diagnostic } from "../diagnostics"
-import { managedBlock, upsertManagedBlock } from "../fs/managed"
 import { readTextIfExists } from "../fs/paths"
 import type { ResolvedAgent, ResolvedPack } from "../resolve/resolve"
 import type { IntegrationDoc, PermissionAction, PipelineDoc } from "../spec/schema"
@@ -11,7 +10,7 @@ import {
   pickContext,
   pickPipeline,
   referencedIntegrations,
-  renderAgentsMarkdown,
+  renderContextFile,
   renderOrchestratorBody,
   truncate,
 } from "./shared"
@@ -374,12 +373,7 @@ export const opencodeExporter: Exporter = {
       }
     }
 
-    const contextBody = renderAgentsMarkdown(pack, pipeline, context)
-    const existingAgentsMd = await readTextIfExists(`${pack.root}/AGENTS.md`)
-    const agentsMd =
-      existingAgentsMd === null || existingAgentsMd.trim().length === 0
-        ? `# ${pack.pack.metadata.name}\n\n${managedBlock("context", contextBody)}\n`
-        : upsertManagedBlock(existingAgentsMd, "context", contextBody)
+    const agentsMd = await renderContextFile({ root: pack.root, path: "AGENTS.md", pack, pipeline, context })
 
     changes.push(
       await makeChange({

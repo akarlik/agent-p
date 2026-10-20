@@ -43,7 +43,7 @@ program
 program
   .command("export")
   .description("Preview or write runtime configuration")
-  .option("-t, --target <targets>", "comma-separated targets (opencode, claude-code)")
+  .option("-t, --target <targets>", "comma-separated targets (opencode, claude-code, codex)")
   .option("--dry-run", "preview without writing")
   .option("-y, --yes", "write the generated files")
   .option("-f, --force", "overwrite files edited since the last export")

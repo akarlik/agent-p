@@ -6,6 +6,7 @@ import { error, info, sortDiagnostics, warning, type Diagnostic } from "../diagn
 import type { ResolvedAgent, ResolvedPack } from "../resolve/resolve"
 import { buildGraph, validateGraph } from "../graph/graph"
 import { mapModelId, resolveTools } from "../exporters/claude-code"
+import { analyzeCodex } from "../exporters/codex"
 import { availableTargets } from "../exporters"
 
 export type ValidateOptions = {
@@ -432,16 +433,14 @@ function validateTarget(target: string, pack: ResolvedPack, diagnostics: Diagnos
   }
 
   if (target === "codex") {
-    diagnostics.push(
-      info("EXPORT_TARGET_PENDING", `The ${target} exporter is not available in this build yet.`, { target }),
-    )
+    diagnostics.push(...analyzeCodex(pack).diagnostics)
     return
   }
 
   diagnostics.push(
     error("EXPORT_TARGET_UNKNOWN", `Unknown export target "${target}".`, {
       target,
-      hint: `Available targets: ${availableTargets().join(", ")}. The codex exporter is planned.`,
+      hint: `Available targets: ${availableTargets().join(", ")}.`,
     }),
   )
 }
