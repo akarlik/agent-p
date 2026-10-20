@@ -2,7 +2,7 @@ import { resolve } from "node:path"
 import { findProjectRoot, globalConfigDir } from "../../core/fs/paths"
 import { resolvePack } from "../../core/resolve/resolve"
 import { hasBlocking, validatePack } from "../../core/validate/validate"
-import { getExporter } from "../../core/exporters"
+import { availableTargets, getExporter } from "../../core/exporters"
 import { applyPlan, DriftError } from "../../core/exporters/apply"
 import { colorizeDiff } from "../../core/exporters/diff"
 import type { ExportPlan } from "../../core/exporters/types"
@@ -108,7 +108,7 @@ export async function runExport(cwd: string, options: ExportOptions): Promise<nu
       throw new CliError(
         `Unknown or unavailable export target "${target}".`,
         2,
-        "Available targets: opencode. Claude Code and Codex exporters are planned.",
+        `Available targets: ${availableTargets().join(", ")}.`,
       )
     }
 

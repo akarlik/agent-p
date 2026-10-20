@@ -5,6 +5,8 @@ import { isEnvPlaceholder, isSecretKey } from "../spec/secrets"
 import { error, info, sortDiagnostics, warning, type Diagnostic } from "../diagnostics"
 import type { ResolvedAgent, ResolvedPack } from "../resolve/resolve"
 import { buildGraph, validateGraph } from "../graph/graph"
+import { mapModelId, resolveTools } from "../exporters/claude-code"
+import { availableTargets } from "../exporters"
 
 export type ValidateOptions = {
   targets?: string[]
@@ -379,12 +381,67 @@ function validateTarget(target: string, pack: ResolvedPack, diagnostics: Diagnos
     return
   }
 
-  if (target === "claude-code" || target === "codex") {
+  if (target === "claude-code") {
+    const modelMap = pack.pack.spec.export?.modelMap ?? {}
+    const integrationNames = [...pack.integrations.keys()].sort()
+    for (const agent of pack.agents.values()) {
+      const file = agent.sources.at(-1)?.path
+      if (agent.doc.spec.model) {
+        const mapping = mapModelId(agent.doc.spec.model, modelMap)
+        if (mapping.degrade) {
+          diagnostics.push(
+            warning("EXPORT_CLAUDE_MODEL", `Agent "${agent.id}": ${mapping.degrade}.`, {
+              target,
+              file,
+              pointer: "spec.model",
+            }),
+          )
+        }
+      }
+
+      const resolution = resolveTools(agent, integrationNames)
+      if (resolution.pathScopedEdit) {
+        diagnostics.push(
+          warning(
+            "EXPORT_CLAUDE_PATH_SCOPED_EDIT",
+            `Agent "${agent.id}" scopes edit permissions by path; Claude Code grants Edit and Write for the whole project.`,
+            { target, file, pointer: "spec.tools.permissions" },
+          ),
+        )
+      }
+      if (resolution.commandScopedBash) {
+        diagnostics.push(
+          warning(
+            "EXPORT_CLAUDE_COMMAND_SCOPED_BASH",
+            `Agent "${agent.id}" scopes bash permissions by command; Claude Code cannot scope Bash commands per subagent.`,
+            { target, file, pointer: "spec.tools.permissions" },
+          ),
+        )
+      }
+      if (resolution.tools.length === 0) {
+        diagnostics.push(
+          warning(
+            "EXPORT_CLAUDE_NO_TOOLS",
+            `Agent "${agent.id}" grants no tool that Claude Code recognizes; the subagent would inherit every tool.`,
+            { target, file, pointer: "spec.tools.builtin" },
+          ),
+        )
+      }
+    }
+    return
+  }
+
+  if (target === "codex") {
     diagnostics.push(
       info("EXPORT_TARGET_PENDING", `The ${target} exporter is not available in this build yet.`, { target }),
     )
     return
   }
 
-  diagnostics.push(error("EXPORT_TARGET_UNKNOWN", `Unknown export target "${target}".`, { target }))
+  diagnostics.push(
+    error("EXPORT_TARGET_UNKNOWN", `Unknown export target "${target}".`, {
+      target,
+      hint: `Available targets: ${availableTargets().join(", ")}. The codex exporter is planned.`,
+    }),
+  )
 }

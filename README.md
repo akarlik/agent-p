@@ -13,7 +13,7 @@
 
 ## Status
 
-The spec, resolver, validator, and the **OpenCode exporter** are implemented and covered by tests. The TUI and the Claude Code and Codex exporters are next. The current interface is the CLI.
+The spec, resolver, validator, and the **OpenCode and Claude Code exporters** are implemented and covered by tests. The TUI and the Codex exporter are next. The current interface is the CLI.
 
 ## Quickstart
 
@@ -54,7 +54,7 @@ Run any command against another directory with the global `-C` flag (`agentp -C 
 
 The pipeline runs discovery → requirements → design → plan → implement → test → review → docs, with a bounded loop from `test` back to `implement` and from `review` back to `implement`.
 
-The template assumes the Anthropic provider and `claude-sonnet-4-5` / `claude-haiku-4-5`. Change `spec.model` in `.agentp/agents/*.yaml` or replace `.agentp/providers/anthropic.yaml`. The pack keeps credentials as a `secretRef` plus an environment variable name; exports reference `{env:VAR}` and never embed a key.
+The template assumes the Anthropic provider and `claude-sonnet-4-5` / `claude-haiku-4-5`. Change `spec.model` in `.agentp/agents/*.yaml` or replace `.agentp/providers/anthropic.yaml`. The pack keeps credentials as a `secretRef` plus an environment variable name; exports reference an environment placeholder (`{env:VAR}` for OpenCode, `${VAR}` for Claude Code) and never embed a key.
 
 ## What gets created
 
@@ -76,7 +76,16 @@ The template assumes the Anthropic provider and `claude-sonnet-4-5` / `claude-ha
 - `AGENTS.md` — project context in a managed block
 - `opencode.json` — MCP server entries, merged without touching the rest of your config
 
-Nothing is written without a preview and a backup. Regenerating a hand-edited agent file requires `--force`, while `AGENTS.md` and `opencode.json` are updated in place.
+`agentp export --target claude-code` writes:
+
+- `.claude/agents/<name>.md` — one subagent per role, with a `tools` allowlist, model alias, `maxTurns`, and a color
+- `.claude/commands/<pipeline>.md` — a slash command that runs in the main thread and delegates to the subagents with the Agent tool
+- `CLAUDE.md` — project context in a managed block
+- `.mcp.json` — MCP server entries, merged without touching the rest of your config
+
+Claude Code has no primary-agent file that can spawn subagents by name, so the pipeline is compiled into `/feature-delivery` instead of an orchestrator agent. MCP servers are scoped per subagent through the `tools` allowlist (`mcp__<server>__*`): a server that is not listed is unreachable. `.mcp.json` entries use `${VAR}` placeholders, and local servers keep non-secret environment values as written. Servers you add to `.mcp.json` need a one-time approval the next time Claude Code starts.
+
+Nothing is written without a preview and a backup. Regenerating a hand-edited agent file requires `--force`, while context and config files (`AGENTS.md`, `CLAUDE.md`, `opencode.json`, `.mcp.json`) are updated in place.
 
 ## Commands
 
@@ -85,6 +94,7 @@ Nothing is written without a preview and a backup. Regenerating a hand-edited ag
 | `agentp init` | Scaffold a full-SDLC pack |
 | `agentp validate` | Schema, reference, graph, and exporter checks (`--strict`, `--json`, `--target`) |
 | `agentp export --target opencode` | Preview the export (`--yes` writes, `--dry-run` never does) |
+| `agentp export --target claude-code` | Same, for Claude Code (`.claude/`, `CLAUDE.md`, `.mcp.json`) |
 | `agentp schema --out schemas/agentp.schema.json` | Write the JSON Schema for the pack format |
 | `bun run check` | Typecheck and test |
 
@@ -92,15 +102,18 @@ Nothing is written without a preview and a backup. Regenerating a hand-edited ag
 
 1. **The spec is the source of truth.** A pack is plain YAML documents (`Agent`, `Pipeline`, `Context`, `Integration`, `Provider`, `Pack`) under `apiVersion: agentp/v1`. The JSON Schema is generated from the same Zod definitions the tool uses, so the two cannot drift.
 2. **Inheritance over duplication.** A global library at `~/.config/agentp/` merges into each project, field by field, before schema defaults apply. An agent can also `extends` another agent by name.
-3. **Honest fidelity.** OpenCode has no declarative graph, so the DAG is compiled into an orchestrator prompt with explicit routing rules, loop caps, and a handoff contract. The capability matrix is reported per target.
-4. **No secrets in exports.** A `secretRef` names a key in the OS keychain or encrypted store. Exports write `{env:VAR}` placeholders. Secret-looking environment literals are replaced with placeholders at export time.
+3. **Honest fidelity.** Neither OpenCode nor Claude Code has a declarative graph, so the DAG is compiled into an orchestrator prompt (or slash command) with explicit routing rules, loop caps, and a handoff contract. Where a runtime cannot express a rule, the export says so: path-scoped edits, command-scoped bash, and unrecognized models are reported as warnings or notes instead of being silently dropped. The capability matrix is reported per target.
+4. **No secrets in exports.** A `secretRef` names a key in the OS keychain or encrypted store. Exports write environment placeholders (`{env:VAR}` for OpenCode, `${VAR}` for Claude Code). Secret-looking environment literals are replaced with placeholders at export time.
 5. **Preview everything.** Every export shows a unified diff, keeps backups, and detects hand edits to generated files.
 
 ## Known limits
 
-- The OpenCode exporter is the only one implemented; `claude-code` and `codex` are recognized but not yet generated.
-- Stale MCP entries are not pruned from `opencode.json`; Agent P only adds and updates the servers it manages.
-- `maxOutputTokens` has no per-agent equivalent in OpenCode and is reported as a note instead.
+- The Codex exporter is recognized but not yet generated.
+- Stale MCP entries are not pruned from `opencode.json` or `.mcp.json`; Agent P only adds and updates the servers it manages.
+- `maxOutputTokens` and per-agent `temperature` have no equivalent in either runtime and are reported as notes instead.
+- Claude Code subagent permissions are an allowlist, so a path-scoped edit rule grants `Edit` and `Write` for the whole project. The export warns and leaves session-wide rules to `.claude/settings.json`.
+- Bash command patterns cannot be scoped per Claude Code subagent; the export warns.
+- A neutral `list` tool maps to Claude Code's `Glob`, and `question`/`external_directory` have no subagent equivalent; both are reported.
 - The interactive TUI has not landed yet.
 
 ## License
