@@ -1,7 +1,5 @@
 # Agent P
 
-> Agent P is Perry the Platypus: he shows up, does the job, and leaves no trace.
-
 **Agent P** is a terminal tool for designing, validating, and exporting a team of AI agents and the pipeline they work through. It is an authoring tool, not a runtime: you define the pack once, validate it, and export native configuration for the agent runtime you already use.
 
 ```
