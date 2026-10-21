@@ -155,7 +155,3 @@ Nothing is written without a preview and a backup. Regenerating a hand-edited ge
 - Codex loads `.codex/` only when the project is trusted; MCP servers in `.codex/config.toml` stay inactive until then.
 - The TUI reads and exports the pack but does not edit YAML yet; reload with `r` after editing in your editor.
 - The TUI requires an interactive terminal; use `validate` and `export` in CI or other non-TTY environments.
-
-## License
-
-MIT
