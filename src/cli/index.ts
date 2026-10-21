@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { resolve } from "node:path"
 import { Command } from "commander"
+import { findProjectRoot } from "../core/fs/paths"
 import { PRODUCT, VERSION } from "../core/version"
 import { CliError } from "./errors"
 import { runValidate } from "./commands/validate"
@@ -61,6 +62,14 @@ program
   )
 
 program
+  .command("ui")
+  .description("Open the interactive terminal interface")
+  .action(async () => {
+    const { runUi } = await import("./commands/ui")
+    process.exitCode = await runUi(cwd())
+  })
+
+program
   .command("schema")
   .description("Print or write the JSON Schema for the pack format")
   .option("-o, --out <path>", "write the schema to a file")
@@ -68,12 +77,15 @@ program
     process.exitCode = await runSchema(cwd(), options)
   })
 
-program.action(() => {
-  console.log(
-    `${c.teal("Agent P")} ${c.dim(`v${VERSION}`)} — an authoring tool for AI agent teams.\n`,
-  )
-  console.log(c.dim("The interactive TUI lands after the CLI slice. For now:"))
-  console.log("")
+program.action(async () => {
+  if (process.stdout.isTTY && process.stdin.isTTY && findProjectRoot(cwd())) {
+    const { runUi } = await import("./commands/ui")
+    process.exitCode = await runUi(cwd())
+    return
+  }
+  console.log(`${c.teal("Agent P")} ${c.dim(`v${VERSION}`)} — design, validate, and export AI agent teams.\n`)
+  console.log(c.dim("Run inside a project with an .agentp/ pack to open the interactive interface."))
+  console.log(c.dim("Run `agentp init` to create one.\n"))
   program.help()
 })
 

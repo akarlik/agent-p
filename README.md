@@ -5,15 +5,20 @@
 **Agent P** is a terminal tool for designing, validating, and exporting a team of AI agents and the pipeline they work through. It is an authoring tool, not a runtime: you define the pack once, validate it, and export native configuration for the agent runtime you already use.
 
 ```
-┌ Agent P ─ my-service ────────────────────────────── v0.1.0 ┐
-│ ◆ Overview   Providers   Agents   Pipeline   Integrations   │
-│   Context    Export      Builder    Settings                │
-└─────────────────────────────────────────────────────────────┘
+┌ Agent P ─ my-service ──────────────────────────────────────┐
+│ › Overview      │  Pack                                    │
+│   Agents        │    Name         my-service               │
+│   Pipeline      │    Pipeline     feature-delivery         │
+│   Integrations  │  Validation                              │
+│   Context       │    2 warnings · 1 info                   │
+│   Export        │                                          │
+└────────────────────────────────────────────────────────────┘
+ ↑↓ section · → open · tab body · ? help · q quit
 ```
 
 ## Status
 
-The spec, resolver, validator, and the **OpenCode, Claude Code, and Codex CLI exporters** are implemented and covered by tests. The TUI is next. The current interface is the CLI.
+The spec, resolver, validator, all three exporters, and the **interactive TUI** are implemented and covered by tests. MCP discovery, repository scan, and the chat team-builder are next.
 
 ## Quickstart
 
@@ -24,6 +29,7 @@ bun install
 bun run src/cli/index.ts init
 bun run src/cli/index.ts validate
 bun run src/cli/index.ts export --target opencode --dry-run
+bun run src/cli/index.ts          # opens the TUI
 ```
 
 Or link the binary:
@@ -33,9 +39,31 @@ bun link
 agentp init
 agentp validate
 agentp export --target opencode --yes
+agentp                     # or: agentp ui
 ```
 
 Run any command against another directory with the global `-C` flag (`agentp -C ../service validate`).
+
+## The TUI
+
+`agentp` inside a project with a pack opens the interactive interface; `agentp ui` does the same explicitly. The pack is resolved before the first frame, so nothing is loaded lazily except export plans.
+
+| Key | Action |
+| --- | --- |
+| `↑`/`↓` or `j`/`k` | Move in the sidebar, move in a list, or scroll the detail pane |
+| `→`, `enter` | Open the selected item, or switch between list and detail |
+| `←`, `esc` | Go back (detail → list → sidebar) |
+| `tab` | Switch between the sidebar and the body |
+| `1`–`6` | Jump to a section |
+| `pgup`/`pgdn`, `home`/`end`, `g`/`G` | Scroll a page or jump to the top/bottom |
+| `m` | In Pipeline, toggle the Mermaid source |
+| `[` / `]` | Switch export target |
+| `w` | Write the current export plan (after validation) |
+| `f` | Toggle force, needed when a generated file was edited since the last export |
+| `r` | Reload the pack from disk |
+| `?` | Help; `q` quits |
+
+The TUI is a reader and an exporter: it shows the merged pack, validation findings, the pipeline DAG and its loops, integration scoping, the rendered `AGENTS.md`/`CLAUDE.md` block, and a per-target diff. It does not edit YAML yet — change a file in your editor and press `r`.
 
 ## The starter pack
 
@@ -100,6 +128,7 @@ Nothing is written without a preview and a backup. Regenerating a hand-edited ge
 
 | Command | Purpose |
 | --- | --- |
+| `agentp` / `agentp ui` | Open the interactive TUI in the current pack |
 | `agentp init` | Scaffold a full-SDLC pack |
 | `agentp validate` | Schema, reference, graph, and exporter checks (`--strict`, `--json`, `--target`) |
 | `agentp export --target opencode` | Preview the export (`--yes` writes, `--dry-run` never does) |
@@ -126,7 +155,8 @@ Nothing is written without a preview and a backup. Regenerating a hand-edited ge
 - Codex custom agents inherit the session's provider, permissions, and MCP servers. A path- or command-scoped rule, a withheld web tool, or a server granted to only some agents is reported, not enforced.
 - Codex has no per-agent `maxTurns`, `temperature`, or output cap, so those settings are omitted and reported.
 - Codex loads `.codex/` only when the project is trusted; MCP servers in `.codex/config.toml` stay inactive until then.
-- The interactive TUI has not landed yet.
+- The TUI reads and exports the pack but does not edit YAML yet; reload with `r` after editing in your editor.
+- The TUI requires an interactive terminal; use `validate` and `export` in CI or other non-TTY environments.
 
 ## License
 
