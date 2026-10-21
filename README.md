@@ -18,7 +18,7 @@
 
 ## Status
 
-The spec, resolver, validator, all three exporters, and the **interactive TUI** are implemented and covered by tests. MCP discovery, repository scan, and the chat team-builder are next.
+The spec, resolver, validator, all three exporters, and the **interactive TUI** are implemented and covered by tests. MCP discovery, repository scan, and the chat team-builder are next; remaining work is tracked in [TASKS.md](TASKS.md).
 
 ## Quickstart
 
